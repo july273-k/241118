@@ -22,7 +22,7 @@ st.title('강남구 공영주차장 안내')
 st.map(data, latitude='위도', longitude='경도', size='size', color='color')
 
 # 월정기권 요금 필터링을 위한 UI
-st.title("강남구 공영주차장 지도")
+st.title("유료 월정기권 취급 주차장 정보")
 
 view_option = st.radio(
     "주차장 유형 선택",
