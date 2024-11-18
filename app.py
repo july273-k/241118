@@ -4,7 +4,7 @@ import folium  # 'folium'을 별칭 없이 임포트합니다.
 from streamlit_folium import st_folium
 
 # 데이터 로드 및 전처리
-file_path = "main/강남구_공영주차장.csv"
+file_path = "gangnamgupublicparking.csv"
 data = pd.read_csv(file_path, encoding='cp949')
 data = data.copy().fillna(0)  # 결측값을 0으로 채움
 
