@@ -1,38 +1,67 @@
 import streamlit as st
 import pandas as pd
-import folium as fo
+import folium  # 'folium'을 별칭 없이 임포트합니다.
+from streamlit_folium import st_folium
 
-# cp949 인코딩으로 읽기 (Windows에서 생성된 파일일 가능성 높음)
-data = pd.read_csv("강남구_공영주차장.csv", encoding='cp949')
+# 데이터 로드 및 전처리
+file_path = "강남구_공영주차장.csv"
+data = pd.read_csv(file_path, encoding='cp949')
+data = data.copy().fillna(0)  # 결측값을 0으로 채움
 
+# 지도 시각화를 위한 데이터 처리
+data['size'] = data['주차구획수']
+
+# 주차장 유형별 색상 지정
+parking_type_colors = {'노상': '#37eb91', '부설': '#ebbb37', '노외': '#00FFFF'}
+data['color'] = data['주차장유형'].map(parking_type_colors)
+
+# Streamlit 앱 시작
 st.title('강남구 공영주차장 안내')
 
+# 지도 표시
+st.map(data, latitude='위도', longitude='경도', size='size', color='color')
 
-data = data.copy().fillna(0)
-data.loc[:,'size'] = (data['주차구획수'])
+# 월정기권 요금 필터링을 위한 UI
+st.title("강남구 공영주차장 지도")
 
+view_option = st.radio(
+    "주차장 유형 선택",
+    ("유료 월정기권 취급 주차장", "월정기권 미취급 주차장")
+)
 
+# 월정기권 요금에 따른 데이터 필터링 및 색상 지정
+if view_option == "유료 월정기권 취급 주차장":
+    filtered_data = data[data['월정기권요금'] > 0]
+    st.subheader("유료 월정기권 취급 주차장")
+    filtered_data['color'] = "#FF0000"  # 빨간색
+else:
+    filtered_data = data[data['월정기권요금'] == 0]
+    st.subheader("월정기권 미취급 주차장")
+    filtered_data['color'] = "#00FF00"  # 초록색
 
-color = {'노상':'#37eb91',
-         '부설':'#ebbb37',
-         '노외':'#00FFFF'}
-data.loc[:,'color'] = data.copy().loc[:,'주차장유형'].map(color)
+# Folium 지도 생성
+m = folium.Map(location=[filtered_data['위도'].mean(), filtered_data['경도'].mean()], zoom_start=13)
 
-data
+# 주차장 데이터를 지도에 표시
+for idx, row in filtered_data.iterrows():
+    folium.CircleMarker(
+        location=[row['위도'], row['경도']],
+        radius=row['size'] / 10,
+        color=row['color'],
+        fill=True,
+        fill_color=row['color'],
+        popup=f"주차장명: {row['주차장명']}<br>월정기권요금: {row['월정기권요금']}원"
+    ).add_to(m)
 
-st.map(data, latitude="위도",
-       longitude="경도",
-       size="size",
-       color="color")
+# Streamlit에 지도 표시
+st_data = st_folium(m, width=800, height=500)
 
+# 주차 요금 계산기
+st.title("강남구 공영주차장 요금 계산기")
 
-# 주차장 데이터 로드
-file_path = '강남구_공영주차장.csv'
-parking_data = pd.read_csv(file_path, encoding='cp949')
-
-# 필요한 열만 추출하여 데이터 간소화
+# 주차 요금 계산을 위한 데이터 준비
 columns_needed = ['주차장명', '주차기본시간', '주차기본요금', '추가단위시간', '추가단위요금']
-parking_fee_data = parking_data[columns_needed].dropna()
+parking_fee_data = data[columns_needed].dropna()
 
 # 데이터 타입 변환
 parking_fee_data['주차기본시간'] = parking_fee_data['주차기본시간'].astype(float)
@@ -63,9 +92,7 @@ def calculate_parking_fee(parking_name, parking_duration):
     
     return f"총 주차 요금: {total_fee:.0f}원"
 
-# Streamlit UI
-st.title("강남구 공영주차장 요금 계산기")
-
+# 주차 요금 계산기 UI
 with st.form("parking_fee_form"):
     parking_name = st.selectbox("주차장명", parking_fee_data['주차장명'].unique())
     parking_duration = st.number_input("주차시간(분)", min_value=0, step=1)
