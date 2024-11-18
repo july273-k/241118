@@ -5,7 +5,7 @@ from streamlit_folium import st_folium
 
 # 데이터 로드 및 전처리
 file_path = "gangnamgupublicparking.csv"
-data = pd.read_csv(file_path, encoding='cp949')
+data = pd.read_csv(file_path, encoding='utf-8')  # 또는 'latin1', 'iso-8859-1' 등
 data = data.copy().fillna(0)  # 결측값을 0으로 채움
 
 # 지도 시각화를 위한 데이터 처리
